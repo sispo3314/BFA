@@ -1,9 +1,11 @@
 # Boundary-Flux-Aware Gated Multi-Stream Network for Robust Human Activity Recognition
+
 <img width="1040" height="765" alt="image" src="https://github.com/user-attachments/assets/d35eb994-9aa6-40e7-96ee-b1b777d56ae6" />
 This repository implements the methodology proposed in the paper "Boundary-Flux-Aware Gated Multi-Stream Network for Robust Human Activity Recognition"
 
 ## Paper Overview
-Abstract: In sensor-based Human Activity Recognition (HAR),
+
+**Abstract**: In sensor-based Human Activity Recognition (HAR),
 deep learning models often struggle to balance sensitivity during
 activity transitions with stability during steady-state segments.
 Most HAR systems adopt fixed-length windowing and a single
@@ -35,8 +37,21 @@ suitable for real-time deployment on resource-constrained edge-
 IoT devices.
 
 ## Dataset
-- UCI-HAR dataset is available at https://archive.ics.uci.edu/dataset/240/human+activity+recognition+using+smartphones
-- Motionsense dataset is available at https://www.kaggle.com/datasets/malekzadeh/motionsense-dataset
-- MHEALTH dataset is available at https://archive.ics.uci.edu/dataset/319/mhealth+dataset
-- WISDM dataset is available at https://www.cis.fordham.edu/wisdm/dataset.php
 
+- **UCI-HAR** dataset is available at https://archive.ics.uci.edu/dataset/240/human+activity+recognition+using+smartphones
+- **MotionSense** dataset is available at https://www.kaggle.com/datasets/malekzadeh/motionsense-dataset
+- **MHEALTH** dataset is available at https://archive.ics.uci.edu/dataset/319/mhealth+dataset
+- **WISDM** dataset is available at https://www.cis.fordham.edu/wisdm/dataset.php
+
+## Requirements
+
+<aside>
+
+torch==2.6.0
+numpy==2.3.4
+scikit-learn==1.7.2
+matplotlib==3.9.2
+seaborn==0.13.2
+pandas==2.3.3
+
+</aside>
