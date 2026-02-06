@@ -41,7 +41,7 @@ suitable for real-time deployment on resource-constrained edge-
 IoT devices.
 
 ## Dataset
-
+This repository does not include datasets. Please download them from the official sources below and configure the dataset path accordingly.
 - **UCI-HAR** dataset is available at https://archive.ics.uci.edu/dataset/240/human+activity+recognition+using+smartphones
 - **MotionSense** dataset is available at https://www.kaggle.com/datasets/malekzadeh/motionsense-dataset
 - **MHEALTH** dataset is available at https://archive.ics.uci.edu/dataset/319/mhealth+dataset
@@ -56,6 +56,15 @@ matplotlib==3.9.2
 seaborn==0.13.2
 pandas==2.3.3
 ```
+To install all required packages:
+```
+pip install -r requirements.txt
+```
+
+## License
+This project is licensed under the MIT License.
+See the `LICENSE` file for details.
+
 ## Contact
 For questions or issues, please contact:
   - Jimin Kim: sispo3314@gmail.com
