@@ -33,6 +33,22 @@ pip install -r requirements.txt
 ```
 ## Codebase Overview
 - [`model.py`](model.py) : Implementation of the proposed ABF-HAR (Attention-based Boundary Flux Human Activity Recognition) architecture with a weakly supervised gating mechanism. The implementation is based on PyTorch and includes the Boundary-Flux encoder, static CNN stream, SSR stream, and learned gate for dynamic stream modulation.
+
+## Citing this Repository
+If you use this code in your research, please cite:
+```
+@article{ABF-HAR,
+  title   = {Boundary-Flux-Aware Gated Multi-Stream Network for Robust Human Activity Recognition},
+  author  = {Jimin Kim and Myung-Kyu Yi},
+  journal = {},
+  volume  = {},
+  number  = {},
+  pages   = {},
+  year    = {},
+  publisher = {}
+}
+```
+
 ## License
 This project is licensed under the [MIT License](LICENSE).
 See the `LICENSE` file for details.
