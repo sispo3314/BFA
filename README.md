@@ -9,36 +9,7 @@ This repository implements the methodology proposed in the paper "Boundary-Flux-
 
 ## Paper Overview
 
-**Abstract**: In sensor-based Human Activity Recognition (HAR),
-deep learning models often struggle to balance sensitivity during
-activity transitions with stability during steady-state segments.
-Most HAR systems adopt fixed-length windowing and a single
-temporal encoder. However, processing diverse motion regimes
-with a monolithic encoder can be inefficient when handling
-both transient and steady-state dynamics simultaneously. This
-one-size-fits-all representation is ill-suited to competing tempo-
-ral regimes, often smoothing abrupt switch points or yielding
-jittery predictions. To address this challenge, we propose a role-
-separated architecture that effectively disentangles boundary-
-sensitive dynamics from stationary contexts. Our framework
-incorporates a Boundary-Flux stream to capture rapid signal
-variations and a Steady-State Representation (SSR) stream to
-maintain robustness during continuous activities. Crucially, we
-introduce a lightweight, Label-Free Motion Gating mechanism
-that dynamically modulates the contribution of these streams. Un-
-like traditional attention mechanisms requiring explicit bound-
-ary annotations, our gate is trained using weak supervision
-derived from signal-intrinsic motion cues via a Gaussian Mixture
-Model (GMM) approach. Extensive experiments on four public
-benchmarks, including UCI-HAR, WISDM, MotionSense, and
-Mhealth, demonstrate that the proposed method achieves state-
-of-the-art performance with F1-scores ranging from 0.9684 to
-0.9993 while maintaining exceptional stability against sensor
-noise. Furthermore, the model maintains high computational
-efficiency with approximately 0.66M parameters and an inference
-latency of less than 5 ms (on standard CPUs), making it highly
-suitable for real-time deployment on resource-constrained edge-
-IoT devices.
+**Abstract**: In sensor-based Human Activity Recognition (HAR), deep learning models often struggle to balance sensitivity during activity transitions with stability during steady-state segments. Most HAR systems adopt fixed-length windowing and a single temporal encoder. However, processing diverse motion regimes with a monolithic encoder can be inefficient when handling both transient and steady-state dynamics simultaneously. This one-size-fits-all representation is ill-suited to competing temporal regimes, often smoothing abrupt switch points or yielding jittery predictions. To address this challenge, we propose a role-separated architecture that effectively disentangles boundary-sensitive dynamics from stationary contexts. Our framework incorporates a Boundary-Flux stream to capture rapid signal variations and a Steady-State Representation (SSR) stream to maintain robustness during continuous activities. Crucially, we introduce a lightweight, Label-Free Motion Gating mechanism that dynamically modulates the contribution of these streams. Unlike traditional attention mechanisms requiring explicit boundary annotations, our gate is trained using weak supervision derived from signal-intrinsic motion cues via a Gaussian Mixture Model (GMM) approach. Extensive experiments on four public benchmarks, including UCI-HAR, WISDM, MotionSense, and Mhealth, demonstrate that the proposed method achieves state-of-the-art performance with F1-scores ranging from 0.9684 to 0.9993 while maintaining exceptional stability against sensor noise. Furthermore, the model maintains high computational efficiency with approximately 0.66M parameters and an inference latency of less than 5 ms (on standard CPUs), making it highly suitable for real-time deployment on resource-constrained edge-IoT devices.
 
 ## Dataset
 This repository does not include datasets. Please download them from the official sources below and configure the dataset path accordingly.
@@ -60,7 +31,8 @@ To install all required packages:
 ```
 pip install -r requirements.txt
 ```
-
+## Codebase Overview
+- `model.py` : Implementation of the proposed ABF-HAR (Attention-based Boundary Flux Human Activity Recognition) architecture with a weakly supervised gating mechanism. The implementation is based on PyTorch and includes the Boundary-Flux encoder, static CNN stream, SSR stream, and learned gate for dynamic stream modulation.
 ## License
 This project is licensed under the MIT License.
 See the `LICENSE` file for details.
