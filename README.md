@@ -44,14 +44,12 @@ IoT devices.
 - **WISDM** dataset is available at https://www.cis.fordham.edu/wisdm/dataset.php
 
 ## Requirements
-
-<aside>
-
+```
 torch==2.6.0
 numpy==2.3.4
 scikit-learn==1.7.2
 matplotlib==3.9.2
 seaborn==0.13.2
 pandas==2.3.3
+```
 
-</aside>
