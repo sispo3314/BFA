@@ -32,3 +32,10 @@ noise. Furthermore, the model maintains high computational
 efficiency with approximately 0.66M parameters and an inference
 latency of less than 5 ms (on standard CPUs), making it highly
 suitable for real
+
+##Dataset
+- UCI-HAR dataset is available at https://archive.ics.uci.edu/dataset/240/human+activity+recognition+using+smartphones
+- Motionsense dataset is available at https://www.kaggle.com/datasets/malekzadeh/motionsense-dataset
+- MHEALTH dataset is available at https://archive.ics.uci.edu/dataset/319/mhealth+dataset
+- WISDM dataset is available at https://www.cis.fordham.edu/wisdm/dataset.php
+
