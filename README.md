@@ -3,7 +3,6 @@
 This repository implements the methodology proposed in the paper "Boundary-Flux-Aware Gated Multi-Stream Network for Robust Human Activity Recognition"
 
 ## Paper Overview
--
 Abstract: In sensor-based Human Activity Recognition (HAR),
 deep learning models often struggle to balance sensitivity during
 activity transitions with stability during steady-state segments.
