@@ -30,7 +30,7 @@ pip install -r requirements.txt
 ```
 ## Codebase Overview
 - [`model.py`](model.py) : Implementation of the proposed ABF-HAR (Attention-based Boundary Flux Human Activity Recognition) architecture with a weakly supervised gating mechanism. The implementation is based on PyTorch and includes the Boundary-Flux encoder, static CNN stream, SSR stream, and learned gate for dynamic stream modulation.
-
+- [`BFA-comparison-with-baseline-CNN-and-Transformer.py`](BFA-comparison-with-baseline-CNN-and-Transformer.py) : End-to-end comparison script that trains and evaluates ABF-HAR against CNN and Transformer baselines on UCI-HAR. Reports accuracy, macro-F1, and boundary-specific metrics (PSR, TCD) with transition visualization.
 ## Citing this Repository
 If you use this code in your research, please cite:
 ```
