@@ -1,5 +1,6 @@
 # Role-Separated Human Activity Recognition with Matched Boundary-Flux Evidence and Group-Specific Statistical Modulation
 
+<img width="1408" height="768" alt="image" src="https://github.com/user-attachments/assets/8edb01f3-751a-486c-bba6-c1dc8df2dc24" />
 
 This repository implements the methodology proposed in the paper "Role-Separated Human Activity Recognition with Matched Boundary-Flux Evidence and Group-Specific Statistical Modulation"
 
