@@ -1,7 +1,7 @@
 """
-  - ABF-HAR: Attention-based Boundary Flux Human Activity Recognition
-    with Weak-Supervised Gating
-  - Author: JiminKim and Myung-Kyu Yi
+  - BFA-HAR: Boundary-Flux-Aware Human Activity Recognition
+    with Descriptor-Group-Specific Statistical Modulation
+  - Author: Jimin Kim and Myung-Kyu Yi
   - Model Architecture Only
 """
 
@@ -11,61 +11,56 @@ import torch.nn.functional as F
 
 
 class BoundaryFluxAttention(nn.Module):
-    """Boundary-aware Multi-Head Attention"""
-    def __init__(self, d_model, num_heads=4):
+    """Multi-head self-attention with a soft variation-score key bias."""
+    def __init__(self, d_model, num_heads=4, alpha=0.1):
         super().__init__()
+        if d_model % num_heads != 0:
+            raise ValueError("d_model must be divisible by num_heads")
         self.num_heads = num_heads
-        self.d_model = d_model
         self.head_dim = d_model // num_heads
-        assert d_model % num_heads == 0
+        self.alpha = float(alpha)
+        self.scale = self.head_dim ** -0.5
 
         self.qkv = nn.Linear(d_model, d_model * 3)
         self.out_proj = nn.Linear(d_model, d_model)
-        self.scale = self.head_dim ** -0.5
 
     def forward(self, x, boundary_score):
         """
         x: [B, T, D]
-        boundary_score: [B, T]
+        boundary_score: [B, T]  (soft variation score s)
         """
         B, T, D = x.shape
 
         qkv = self.qkv(x).reshape(B, T, 3, self.num_heads, self.head_dim)
-        qkv = qkv.permute(2, 0, 3, 1, 4)  
+        qkv = qkv.permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        attn = torch.matmul(q, k.transpose(-2, -1)) * self.scale 
+        logits = torch.matmul(q, k.transpose(-2, -1)) * self.scale
+        logits = logits + self.alpha * boundary_score.unsqueeze(1).unsqueeze(1)
+        attn = F.softmax(logits, dim=-1)
 
-        if boundary_score.dim() == 3 and boundary_score.size(-1) == 1:
-            boundary_score = boundary_score.squeeze(-1)
-        boundary_weight = boundary_score.unsqueeze(1).unsqueeze(1)
-
-        attn = attn + boundary_weight * 0.1
-        attn = F.softmax(attn, dim=-1)
-
-        out = torch.matmul(attn, v) 
+        out = torch.matmul(attn, v)
         out = out.transpose(1, 2).reshape(B, T, D)
-        out = self.out_proj(out)
-        return out
+        return self.out_proj(out)
 
 
 class BoundaryFluxEncoder(nn.Module):
-    """Transformer Encoder with Boundary Flux Attention"""
-    def __init__(self, input_dim, d_model, num_layers=2, num_heads=4, max_seq_len=128):
+    """Complete-window attention encoder over the shared Boundary-Flux input."""
+    def __init__(self, flux_dim, d_model=128, num_layers=2, num_heads=4,
+                 alpha=0.1, max_seq_len=128):
         super().__init__()
-        self.linear_in = nn.Linear(input_dim, d_model)
-        self.bn = nn.BatchNorm1d(d_model)
-
-        self.pos_encoding = nn.Parameter(torch.randn(1, max_seq_len, d_model) * 0.02)
+        self.input_linear = nn.Linear(flux_dim, d_model)
+        self.input_bn = nn.BatchNorm1d(d_model)
+        self.positional = nn.Parameter(torch.randn(1, max_seq_len, d_model) * 0.02)
 
         self.layers = nn.ModuleList([
             nn.ModuleDict({
-                "attn": BoundaryFluxAttention(d_model, num_heads),
+                "attn": BoundaryFluxAttention(d_model, num_heads, alpha),
                 "norm1": nn.LayerNorm(d_model),
                 "ffn": nn.Sequential(
                     nn.Linear(d_model, d_model * 4),
                     nn.GELU(),
-                    nn.Dropout(0.1),
+                    nn.Dropout(0.10),
                     nn.Linear(d_model * 4, d_model),
                 ),
                 "norm2": nn.LayerNorm(d_model),
@@ -73,72 +68,29 @@ class BoundaryFluxEncoder(nn.Module):
             for _ in range(num_layers)
         ])
 
-    def forward(self, x, boundary_score):
+    def forward(self, flux, boundary_score):
         """
-        x: [B, T, input_dim]
+        flux: [B, T, flux_dim]
         boundary_score: [B, T]
+        returns h_flux: [B, d_model]
         """
-        B, T, _ = x.shape
-
-        x = self.linear_in(x)
-
-        x = x.permute(0, 2, 1)
-        x = self.bn(x)
-        x = x.permute(0, 2, 1)
-
-        x = x + self.pos_encoding[:, :T, :]
+        x = self.input_linear(flux)
+        x = self.input_bn(x.transpose(1, 2)).transpose(1, 2)
+        x = x + self.positional[:, : x.size(1), :]
 
         for layer in self.layers:
-            attn_out = layer["attn"](x, boundary_score)
-            x = layer["norm1"](x + attn_out)
-            ffn_out = layer["ffn"](x)
-            x = layer["norm2"](x + ffn_out)
+            x = layer["norm1"](x + layer["attn"](x, boundary_score))
+            x = layer["norm2"](x + layer["ffn"](x))
 
-        return x
+        return x.mean(dim=1)
 
 
-class LearnedGate(nn.Module):
-    """Weak-Supervised Learned Gate for Static/Dynamic Routing"""
-    def __init__(self, feature_dim, hidden_dim=64):
+class LocalContextCNN(nn.Module):
+    """Local convolutional encoder over the same Boundary-Flux input."""
+    def __init__(self, flux_dim, d_model=128):
         super().__init__()
-        self.gate_net = nn.Sequential(
-            nn.Linear(feature_dim * 3, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(hidden_dim, 32),
-            nn.BatchNorm1d(32),
-            nn.ReLU(),
-            nn.Linear(32, 1),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, seq_feat):
-        feat_mean = seq_feat.mean(dim=1)          
-        feat_std = seq_feat.std(dim=1)           
-        feat_max = seq_feat.max(dim=1)[0]   
-        gate_input = torch.cat([feat_mean, feat_std, feat_max], dim=1)
-        return self.gate_net(gate_input)
-
-
-class ABF_HAR(nn.Module):
-    """
-    ABF-HAR: Attention-based Boundary Flux for Human Activity Recognition
-    """
-    def __init__(self, input_dim=37, ssr_dim=9, d_model=128, num_classes=6,
-                 num_layers=2, num_heads=4):
-        super().__init__()
-
-        self.flux_encoder = BoundaryFluxEncoder(
-            input_dim=input_dim,
-            d_model=d_model,
-            num_layers=num_layers,
-            num_heads=num_heads,
-            max_seq_len=128,
-        )
-
-        self.static_cnn = nn.Sequential(
-            nn.Conv1d(input_dim, d_model, kernel_size=7, padding=3),
+        self.net = nn.Sequential(
+            nn.Conv1d(flux_dim, d_model, kernel_size=7, padding=3),
             nn.BatchNorm1d(d_model),
             nn.ReLU(),
             nn.Conv1d(d_model, d_model, kernel_size=5, padding=2),
@@ -147,45 +99,120 @@ class ABF_HAR(nn.Module):
             nn.AdaptiveAvgPool1d(1),
         )
 
-        self.ssr_mlp = nn.Sequential(
-            nn.Linear(ssr_dim, 64),
-            nn.BatchNorm1d(64),
+    def forward(self, flux):
+        """
+        flux: [B, T, flux_dim]
+        returns h_local: [B, d_model]
+        """
+        return self.net(flux.transpose(1, 2)).squeeze(-1)
+
+
+class GroupwiseGate(nn.Module):
+    """Predicts one modulation logit per SSR descriptor group (mean, std, ACF)."""
+    def __init__(self, flux_dim, hidden_dim=64, num_groups=3):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(flux_dim * 3, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, 64),
-            nn.BatchNorm1d(64),
+            nn.Dropout(0.10),
+            nn.Linear(hidden_dim, 32),
+            nn.BatchNorm1d(32),
+            nn.ReLU(),
+            nn.Linear(32, num_groups),
+        )
+
+    def forward(self, flux):
+        """
+        flux: [B, T, flux_dim]
+        returns gate logits: [B, num_groups]
+        """
+        u = torch.cat(
+            [
+                flux.mean(dim=1),
+                flux.std(dim=1, unbiased=False),
+                flux.max(dim=1).values,
+            ],
+            dim=1,
+        )
+        return self.net(u)
+
+
+class BFAHAR(nn.Module):
+    """
+    BFA-HAR: shared Boundary-Flux evidence for the attention encoder and the
+    Local Context CNN (both ungated), plus a Statistical Summary Representation
+    (SSR) whose mean, std, and ACF groups are modulated independently.
+
+    ssr_group_sizes: sizes of the (mean, std, ACF) groups in the SSR vector,
+                     e.g. (3, 3, 3) for UCI-HAR / WISDM / MotionSense,
+                     (6, 6, 6) for MHEALTH.
+    """
+    def __init__(self, flux_dim=37, ssr_group_sizes=(3, 3, 3), num_classes=6,
+                 d_model=128, num_layers=2, num_heads=4, alpha=0.1,
+                 ssr_hidden_dim=64, ssr_dropout=0.20, max_seq_len=128):
+        super().__init__()
+        self.ssr_group_sizes = tuple(ssr_group_sizes)
+        ssr_dim = sum(self.ssr_group_sizes)
+
+        self.flux_encoder = BoundaryFluxEncoder(
+            flux_dim=flux_dim,
+            d_model=d_model,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            alpha=alpha,
+            max_seq_len=max_seq_len,
+        )
+        self.local_context = LocalContextCNN(flux_dim, d_model)
+        self.groupwise_gate = GroupwiseGate(flux_dim, num_groups=len(self.ssr_group_sizes))
+
+        self.ssr_mlp = nn.Sequential(
+            nn.Linear(ssr_dim, ssr_hidden_dim),
+            nn.BatchNorm1d(ssr_hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(ssr_dropout),
+            nn.Linear(ssr_hidden_dim, ssr_hidden_dim),
+            nn.BatchNorm1d(ssr_hidden_dim),
             nn.ReLU(),
         )
 
-        self.learned_gate = LearnedGate(feature_dim=input_dim, hidden_dim=64)
-
-        combined_dim = d_model + d_model + 64
+        fusion_dim = d_model + d_model + ssr_hidden_dim
         self.classifier = nn.Sequential(
-            nn.Linear(combined_dim, 256),
+            nn.Linear(fusion_dim, 256),
             nn.LayerNorm(256),
             nn.GELU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.50),
             nn.Linear(256, 128),
             nn.LayerNorm(128),
             nn.GELU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.30),
             nn.Linear(128, num_classes),
         )
 
-    def forward(self, flux_feat, boundary_score, ssr_feat, use_hard_gate=False):
-        flux_out = self.flux_encoder(flux_feat, boundary_score)
-        flux_pooled = flux_out.mean(dim=1)
+    def forward(self, flux, boundary_score, ssr):
+        """
+        flux: [B, T, flux_dim]   shared Boundary-Flux representation F
+        boundary_score: [B, T]   soft variation score s
+        ssr: [B, ssr_dim]        concatenated [z_mean; z_std; z_acf]
 
-        static_out = self.static_cnn(flux_feat.permute(0, 2, 1)).squeeze(-1)
+        returns:
+            logits: [B, num_classes]
+            gate_logits: [B, 3]         (use with BCEWithLogitsLoss for the
+                                         auxiliary motion-derived target)
+            gate_probabilities: [B, 3]  (p_mean, p_std, p_acf)
+        """
+        h_flux = self.flux_encoder(flux, boundary_score)
+        h_local = self.local_context(flux)
 
-        ssr_emb = self.ssr_mlp(ssr_feat)
+        gate_logits = self.groupwise_gate(flux)
+        gate_probabilities = torch.sigmoid(gate_logits)
 
-        gate_prob = self.learned_gate(flux_feat)
-        gate_val = (gate_prob > 0.5).float() if use_hard_gate else gate_prob
+        groups = torch.split(ssr, self.ssr_group_sizes, dim=1)
+        modulated_ssr = torch.cat(
+            [z * gate_probabilities[:, i:i + 1] for i, z in enumerate(groups)],
+            dim=1,
+        )
+        h_ssr = self.ssr_mlp(modulated_ssr)
 
-        ssr_gated = ssr_emb * gate_val
-
-        combined = torch.cat([flux_pooled, static_out, ssr_gated], dim=1)
-        logits = self.classifier(combined)
-
-        return logits, gate_prob
+        logits = self.classifier(torch.cat([h_flux, h_local, h_ssr], dim=1))
+        return logits, gate_logits, gate_probabilities
