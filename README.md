@@ -32,7 +32,7 @@ pip install -r requirements.txt
 ```
 ## Codebase Overview
 - [`model.py`](model.py) : Implementation of the proposed BFA-HAR architecture, including the shared Boundary-Flux representation, Local Context CNN, complete-window attention encoder, SSR pathway, and group-specific SSR modulation.
-- [`BFA-comparison-with-baseline-CNN-and-Transformer.py`](BFA-comparison-with-baseline-CNN-and-Transformer.py) : End-to-end comparison script that trains and evaluates BFA-HAR against CNN and Transformer baselines on UCI-HAR. Reports accuracy, macro-F1, and boundary-specific metrics (PSR, TCD) with transition visualization.
+  
 ## Citing this Repository
 If you use this code in your research, please cite:
 ```
