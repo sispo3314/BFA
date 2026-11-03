@@ -14,32 +14,63 @@ def handcrafted_features(x, fs):
     x:  [N, T, C] normalized inertial windows
     fs: sampling rate in Hz
     returns [N, n_features]
+
+    Time-Domain (10, per channel)
+      - Mean, Standard Deviation (SD), Median, Interquartile Range (IQR),
+        Min, Max, Root Mean Square (RMS), Mean Square (Energy),
+        Skewness, Kurtosis
+
+    Frequency-Domain (3, per channel)
+      - Dominant Frequency, Spectral Entropy, Spectral Centroid
+
+    Cross-Axis (4, per tri-axial sensor)
+      - Signal Magnitude Area (SMA), Pairwise Axis Correlation (x-y, x-z, y-z)
     """
     x = np.asarray(x, dtype=np.float32)
-    mean, sd = x.mean(axis=1), x.std(axis=1)
+
+    # ------------------------------------------------------------------
+    # Time-Domain (10)
+    # ------------------------------------------------------------------
+    mean = x.mean(axis=1)                                             # Mean
+    sd = x.std(axis=1)                                                # Standard Deviation (SD)
+    median = np.median(x, axis=1)                                     # Median
+    iqr = np.quantile(x, .75, axis=1) - np.quantile(x, .25, axis=1)   # Interquartile Range (IQR)
+    x_min = x.min(axis=1)                                             # Min
+    x_max = x.max(axis=1)                                             # Max
+    rms = np.sqrt((x * x).mean(axis=1))                               # Root Mean Square (RMS)
+    energy = (x * x).mean(axis=1)                                     # Mean Square (Energy)
+
     centered = x - mean[:, None]
     m2 = np.maximum((centered ** 2).mean(axis=1), 1e-12)
-    skew = (centered ** 3).mean(axis=1) / (m2 ** 1.5)
-    kurt = (centered ** 4).mean(axis=1) / (m2 ** 2) - 3.0
+    skew = (centered ** 3).mean(axis=1) / (m2 ** 1.5)                 # Skewness
+    kurt = (centered ** 4).mean(axis=1) / (m2 ** 2) - 3.0             # Kurtosis
 
+    # ------------------------------------------------------------------
+    # Frequency-Domain (3)
+    # ------------------------------------------------------------------
     power = np.abs(np.fft.rfft(x, axis=1)) ** 2
     freq = np.fft.rfftfreq(x.shape[1], d=1.0 / fs)
-    power[:, 0] = 0.0
+    power[:, 0] = 0.0                                                 # remove DC component
     den = power.sum(axis=1) + 1e-12
     prob = power / den[:, None]
-    entropy = -(prob * np.log(prob + 1e-12)).sum(axis=1)
-    centroid = (power * freq[None, :, None]).sum(axis=1) / den
-    dominant = freq[power.argmax(axis=1)]
 
-    feats = [mean, sd, np.median(x, axis=1),
-             np.quantile(x, .75, axis=1) - np.quantile(x, .25, axis=1),
-             x.min(axis=1), x.max(axis=1), np.sqrt((x * x).mean(axis=1)),
-             (x * x).mean(axis=1), skew, kurt, dominant, entropy, centroid]
+    dominant = freq[power.argmax(axis=1)]                             # Dominant Frequency
+    entropy = -(prob * np.log(prob + 1e-12)).sum(axis=1)              # Spectral Entropy
+    centroid = (power * freq[None, :, None]).sum(axis=1) / den        # Spectral Centroid
 
-    # Per tri-axial sensor: signal magnitude area and pairwise axis correlations.
+    feats = [mean, sd, median, iqr, x_min, x_max, rms, energy, skew, kurt,
+             dominant, entropy, centroid]
+
+    # ------------------------------------------------------------------
+    # Cross-Axis (4)
+    # ------------------------------------------------------------------
     for start in range(0, x.shape[2] - 2, 3):
         tri = x[:, :, start:start + 3]
+
+        # Signal Magnitude Area (SMA)
         feats.append(np.abs(tri).sum(axis=2).mean(axis=1, keepdims=True))
+
+        # Pairwise Axis Correlation (x-y, x-z, y-z)
         for a, b in ((0, 1), (0, 2), (1, 2)):
             ca = tri[:, :, a] - tri[:, :, a].mean(axis=1, keepdims=True)
             cb = tri[:, :, b] - tri[:, :, b].mean(axis=1, keepdims=True)
