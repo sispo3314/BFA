@@ -25,10 +25,6 @@ class BoundaryFluxAttention(nn.Module):
         self.out_proj = nn.Linear(d_model, d_model)
 
     def forward(self, x, boundary_score):
-        """
-        x: [B, T, D]
-        boundary_score: [B, T]  (soft variation score s)
-        """
         B, T, D = x.shape
 
         qkv = self.qkv(x).reshape(B, T, 3, self.num_heads, self.head_dim)
@@ -69,11 +65,6 @@ class BoundaryFluxEncoder(nn.Module):
         ])
 
     def forward(self, flux, boundary_score):
-        """
-        flux: [B, T, flux_dim]
-        boundary_score: [B, T]
-        returns h_flux: [B, d_model]
-        """
         x = self.input_linear(flux)
         x = self.input_bn(x.transpose(1, 2)).transpose(1, 2)
         x = x + self.positional[:, : x.size(1), :]
@@ -100,10 +91,6 @@ class LocalContextCNN(nn.Module):
         )
 
     def forward(self, flux):
-        """
-        flux: [B, T, flux_dim]
-        returns h_local: [B, d_model]
-        """
         return self.net(flux.transpose(1, 2)).squeeze(-1)
 
 
@@ -139,15 +126,6 @@ class GroupwiseGate(nn.Module):
 
 
 class BFAHAR(nn.Module):
-    """
-    BFA-HAR: shared Boundary-Flux evidence for the attention encoder and the
-    Local Context CNN (both ungated), plus a Statistical Summary Representation
-    (SSR) whose mean, std, and ACF groups are modulated independently.
-
-    ssr_group_sizes: sizes of the (mean, std, ACF) groups in the SSR vector,
-                     e.g. (3, 3, 3) for UCI-HAR / WISDM / MotionSense,
-                     (6, 6, 6) for MHEALTH.
-    """
     def __init__(self, flux_dim=37, ssr_group_sizes=(3, 3, 3), num_classes=6,
                  d_model=128, num_layers=2, num_heads=4, alpha=0.1,
                  ssr_hidden_dim=64, ssr_dropout=0.20, max_seq_len=128):
@@ -190,17 +168,6 @@ class BFAHAR(nn.Module):
         )
 
     def forward(self, flux, boundary_score, ssr):
-        """
-        flux: [B, T, flux_dim]   shared Boundary-Flux representation F
-        boundary_score: [B, T]   soft variation score s
-        ssr: [B, ssr_dim]        concatenated [z_mean; z_std; z_acf]
-
-        returns:
-            logits: [B, num_classes]
-            gate_logits: [B, 3]         (use with BCEWithLogitsLoss for the
-                                         auxiliary motion-derived target)
-            gate_probabilities: [B, 3]  (p_mean, p_std, p_acf)
-        """
         h_flux = self.flux_encoder(flux, boundary_score)
         h_local = self.local_context(flux)
 
