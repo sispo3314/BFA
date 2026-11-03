@@ -31,13 +31,15 @@ To install all required packages:
 pip install -r requirements.txt
 ```
 ## Codebase Overview
-- [`model.py`](model.py) : Implementation of the proposed BFA-HAR architecture, including the shared Boundary-Flux representation, Local Context CNN, complete-window attention encoder, SSR pathway, and group-specific SSR modulation.
-  
+- [`model.py`](model.py) : Implementation of the proposed BFA-HAR architecture, including the complete-window attention encoder, Local Context CNN, SSR pathway, and descriptor-group-specific SSR modulation.
+- [`Comparison/`](Comparison) : Baseline models used in the unified benchmark.
+
+
 ## Citing this Repository
 If you use this code in your research, please cite:
 ```
-@article{ABF-HAR,
-  title   = {Role-Separated Human Activity Recognition with Matched Boundary-Flux Evidence and Group-Specific Statistical Modulation},
+@article{BFA-HAR,
+  title   = {Role-Separated Human Activity Recognition with Shared Boundary-Flux Evidence and Descriptor-Specific Statistical Modulation},
   author  = {Jimin Kim and Myung-Kyu Yi},
   journal = {},
   volume  = {},
@@ -55,4 +57,3 @@ See the [LICENSE](LICENSE) file for details.
 ## Contact
 For questions or issues, please contact:
   - Jimin Kim: sispo3314@gmail.com
-
