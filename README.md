@@ -1,6 +1,7 @@
 # Role-Separated Human Activity Recognition with Shared Boundary-Flux Evidence and Descriptor-Specific Statistical Modulation
 
-<img width="1408" height="768" alt="image" src="https://github.com/user-attachments/assets/8edb01f3-751a-486c-bba6-c1dc8df2dc24" />
+<img width="1698" height="926" alt="image" src="https://github.com/user-attachments/assets/916c1a07-4c8b-4b1c-8034-c3439106bae2" />
+
 
 This repository implements the methodology proposed in the paper "Role-Separated Human Activity Recognition with Shared Boundary-Flux Evidence and Descriptor-Specific Statistical Modulation"
 
